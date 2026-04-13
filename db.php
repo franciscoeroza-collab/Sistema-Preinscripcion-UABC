@@ -1,19 +1,12 @@
 <?php
-// ============================================================
-// db.php — Conexion a la base de datos MySQL
-// Coloca este archivo en: C:/xampp/htdocs/preinscripcion/
-// ============================================================
- 
+// db.php — Conexion a MySQL
+// Coloca todos los archivos en: C:/xampp/htdocs/preinscripcion/
 $host     = "localhost";
-$usuario  = "root";       // usuario por defecto de XAMPP
-$password = "";           // contrasena vacia por defecto en XAMPP
+$usuario  = "root";
+$password = "";
 $base     = "preinscripcion_uabc";
- 
 $conn = new mysqli($host, $usuario, $password, $base);
- 
-if ($conn->connect_error) {
-    die("Error de conexion: " . $conn->connect_error);
-}
- 
+if ($conn->connect_error) { die("Error de conexion: " . $conn->connect_error); }
 $conn->set_charset("utf8");
 ?>
+ 
