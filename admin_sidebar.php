@@ -29,7 +29,8 @@ $current = basename($_SERVER['PHP_SELF']);
     </nav>
     <div class="sb-footer">
         <div class="sb-user">
-            Sesión activa<strong><?= htmlspecialchars($_SESSION['admin_usuario'] ?? '') ?></strong>
+            Sesión activa
+            <strong><?= htmlspecialchars($_SESSION['admin_usuario'] ?? '') ?></strong>
         </div>
         <a href="admin_logout.php" class="sb-out">← Cerrar sesión</a>
     </div>

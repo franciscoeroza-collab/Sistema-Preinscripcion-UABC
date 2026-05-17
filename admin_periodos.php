@@ -1,17 +1,15 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_id'])) { header("Location: admin_login.php"); exit(); }
+if (!isset($_SESSION['admin_id'])) { header("Location: login.php"); exit(); }
 require 'db.php';
 
 $msg = $err = "";
 
-// Crear periodo
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['crear'])) {
-    $sem   = trim($_POST['semestre']);
-    $ini   = $_POST['fecha_inicio'];
-    $fin   = $_POST['fecha_fin'];
+    $sem = trim($_POST['semestre']);
+    $ini = $_POST['fecha_inicio'];
+    $fin = $_POST['fecha_fin'];
     if ($sem && $ini && $fin) {
-        // Desactivar todos primero
         $conn->query("UPDATE periodo_preinscripcion SET activo=0");
         $stmt = $conn->prepare("INSERT INTO periodo_preinscripcion (semestre,fecha_inicio,fecha_fin,activo) VALUES (?,?,?,1)");
         $stmt->bind_param("sss",$sem,$ini,$fin);
@@ -20,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['crear'])) {
     } else { $err = "Todos los campos son requeridos."; }
 }
 
-// Activar un periodo existente
 if (isset($_GET['activar'])) {
     $id = (int)$_GET['activar'];
     $conn->query("UPDATE periodo_preinscripcion SET activo=0");
@@ -28,14 +25,12 @@ if (isset($_GET['activar'])) {
     $msg = "Periodo activado.";
 }
 
-// Cerrar periodo activo
 if (isset($_GET['cerrar'])) {
     $id = (int)$_GET['cerrar'];
     $conn->query("UPDATE periodo_preinscripcion SET activo=0 WHERE id=$id");
     $msg = "Periodo cerrado manualmente.";
 }
 
-// Editar fechas
 if ($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['editar'])) {
     $id  = (int)$_POST['edit_id'];
     $ini = $_POST['edit_ini'];
@@ -56,68 +51,88 @@ foreach ($periodos as $p) { if ($p['activo']) { $activo = $p; break; } }
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Periodos — Admin UABC</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#0f1e2e;--blue:#1A3A5C;--accent:#e8a020;--accent2:#2E6DA4;--border:#2a3f55;--text:#c8d8e8;--muted:#6a8aaa;--card:rgba(26,58,92,.2);}
+:root {
+    --white:#ffffff; --off-white:#f8f7f4; --surface:#f1efe9;
+    --border:#ddd9d0; --border-dark:#c5bfb3;
+    --navy:#1A3A5C; --navy-light:#2E6DA4; --navy-bg:#e8f0f8;
+    --accent:#c47d0e; --accent-light:#e8a020; --accent-bg:#fef3e2;
+    --text:#1c1917; --text-mid:#44403c; --muted:#78716c;
+    --success:#15803d; --success-bg:#f0fdf4; --success-border:#bbf7d0;
+    --warning:#92400e; --warning-bg:#fffbeb; --warning-border:#fde68a;
+    --danger:#b91c1c; --danger-bg:#fef2f2; --danger-border:#fecaca;
+}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'IBM Plex Sans',sans-serif;background:var(--navy);color:var(--text);min-height:100vh;display:flex;}
-<?php include_styles(); ?>
-.main{margin-left:220px;flex:1;padding:2rem;}
-.page-title{font-size:22px;font-weight:600;color:#fff;margin-bottom:4px;}
+body{font-family:'DM Sans',sans-serif;background:var(--off-white);color:var(--text);min-height:100vh;display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:240px;min-height:100vh;background:var(--white);border-right:1.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:10;}
+.sb-logo{padding:1.6rem 1.4rem 1.4rem;border-bottom:1.5px solid var(--border);}
+.sb-logo .mark{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.sb-logo h2{font-family:'Fraunces',serif;font-size:16px;font-weight:600;color:var(--navy);line-height:1.3;}
+.sb-logo p{font-size:12px;color:var(--muted);margin-top:3px;}
+.sb-nav{flex:1;padding:1rem 0;}
+.sb-section{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:10px 1.4rem 5px;}
+.sb-link{display:flex;align-items:center;gap:10px;padding:9px 1.4rem;font-size:13px;font-weight:500;color:var(--text-mid);text-decoration:none;transition:all .15s;border-left:3px solid transparent;}
+.sb-link:hover{background:var(--surface);color:var(--navy);}
+.sb-link.active{background:var(--navy-bg);border-left-color:var(--navy);color:var(--navy);font-weight:600;}
+.sb-link .ico{width:18px;text-align:center;font-size:14px;opacity:.7;}
+.sb-footer{padding:1rem 1.4rem;border-top:1.5px solid var(--border);}
+.sb-user{font-size:12px;color:var(--muted);margin-bottom:8px;}
+.sb-user strong{display:block;color:var(--text-mid);font-weight:600;}
+.sb-out{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:7px;border:1px solid var(--border);transition:all .15s;}
+.sb-out:hover{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger);}
+
+/* MAIN */
+.main{margin-left:240px;flex:1;padding:2rem 2.4rem;}
+.page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--navy);margin-bottom:4px;}
 .page-sub{font-size:13px;color:var(--muted);margin-bottom:2rem;}
+
+.msg{background:var(--success-bg);border:1.5px solid var(--success-border);color:var(--success);border-radius:9px;padding:10px 14px;font-size:13px;margin-bottom:1.2rem;}
+.err{background:var(--danger-bg);border:1.5px solid var(--danger-border);color:var(--danger);border-radius:9px;padding:10px 14px;font-size:13px;margin-bottom:1.2rem;}
+
 .grid2{display:grid;grid-template-columns:1fr 1.6fr;gap:16px;}
-.box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.4rem;margin-bottom:16px;}
-.box h3{font-size:13px;font-weight:600;color:#fff;margin-bottom:1rem;}
-label{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:5px;}
-input[type="text"],input[type="date"]{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;margin-bottom:1rem;outline:none;transition:border-color .2s;}
-input:focus{border-color:var(--accent2);}
-.btn-p{background:var(--blue);color:white;border:1px solid var(--accent2);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .2s;}
-.btn-p:hover{background:var(--accent2);}
-.btn-s{background:transparent;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .2s;text-decoration:none;display:inline-block;}
-.btn-s:hover{border-color:var(--accent2);color:#fff;}
-.btn-danger{background:transparent;color:#f87171;border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;text-decoration:none;display:inline-block;}
-.btn-danger:hover{background:rgba(248,113,113,.1);}
-.msg{background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);color:#4ade80;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;}
-.err{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);color:#f87171;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;}
-.periodo-card{border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem;margin-bottom:10px;background:rgba(255,255,255,.03);}
-.periodo-card.activo{border-color:rgba(232,160,32,.4);background:rgba(232,160,32,.05);}
-.pc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.pc-sem{font-size:14px;font-weight:600;color:#fff;}
-.pc-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;}
-.badge-act{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
-.badge-inact{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);}
+.box{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.4rem;margin-bottom:16px;}
+.box h3{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:1.1rem;}
+
+label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px;}
+input[type="text"],input[type="date"]{
+    width:100%;background:var(--white);border:1.5px solid var(--border);
+    border-radius:9px;padding:10px 13px;font-size:13px;color:var(--text);
+    font-family:'DM Sans',sans-serif;margin-bottom:1rem;outline:none;
+    transition:border-color .2s,box-shadow .2s;
+}
+input:focus{border-color:var(--navy-light);box-shadow:0 0 0 3px rgba(46,109,164,.1);}
+
+.btn-p{background:var(--navy);color:white;border:none;border-radius:9px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .2s;}
+.btn-p:hover{background:var(--navy-light);}
+.btn-s{background:var(--white);color:var(--text-mid);border:1.5px solid var(--border);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-decoration:none;display:inline-block;}
+.btn-s:hover{border-color:var(--navy-light);color:var(--navy);}
+.btn-danger{background:var(--white);color:var(--danger);border:1.5px solid var(--danger-border);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-block;transition:all .15s;}
+.btn-danger:hover{background:var(--danger-bg);}
+
+.activo-box{background:var(--accent-bg);border:1.5px solid #f0c060;border-radius:11px;padding:1.2rem;margin-bottom:16px;}
+.activo-box .label-act{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.activo-box .sem{font-size:15px;font-weight:700;color:var(--accent);}
+.activo-box .fechas{font-size:13px;color:var(--text-mid);margin-top:4px;}
+
+.periodo-card{border:1.5px solid var(--border);border-radius:10px;padding:1rem 1.2rem;margin-bottom:10px;background:var(--white);}
+.periodo-card.activo{border-color:#f0c060;background:var(--accent-bg);}
+.pc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.pc-sem{font-size:14px;font-weight:700;color:var(--navy);}
+.pc-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;letter-spacing:.04em;}
+.badge-act{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border);}
+.badge-inact{background:var(--surface);color:var(--muted);border:1px solid var(--border);}
 .pc-fechas{font-size:12px;color:var(--muted);margin-bottom:10px;}
 .pc-acc{display:flex;gap:8px;flex-wrap:wrap;}
-.activo-box{background:rgba(232,160,32,.08);border:1px solid rgba(232,160,32,.25);border-radius:10px;padding:1.2rem;margin-bottom:1rem;}
-.activo-box .sem{font-size:15px;font-weight:600;color:var(--accent);}
-.activo-box .fechas{font-size:13px;color:var(--text);margin-top:4px;}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center;}
 .modal.open{display:flex;}
-.modal-box{background:#0f1e2e;border:1px solid var(--border);border-radius:12px;padding:1.6rem;width:380px;}
-.modal-box h4{font-size:15px;font-weight:600;color:#fff;margin-bottom:1.2rem;}
+.modal-box{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.6rem;width:380px;box-shadow:0 20px 50px rgba(0,0,0,.12);}
+.modal-box h4{font-family:'Fraunces',serif;font-size:17px;font-weight:600;color:var(--navy);margin-bottom:1.2rem;}
 </style>
-<?php
-function include_styles() {
-    echo "
-    .sidebar{width:220px;min-height:100vh;background:rgba(15,30,46,.9);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;}
-    .sb-logo{padding:1.5rem 1.2rem;border-bottom:1px solid var(--border);}
-    .sb-logo .mark{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.1em;}
-    .sb-logo h2{font-size:14px;font-weight:600;color:#fff;margin-top:4px;line-height:1.3;}
-    .sb-logo p{font-size:11px;color:var(--muted);margin-top:2px;}
-    .sb-nav{flex:1;padding:1rem 0;}
-    .sb-section{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;padding:8px 1.2rem 4px;}
-    .sb-link{display:flex;align-items:center;gap:10px;padding:9px 1.2rem;font-size:13px;color:var(--text);text-decoration:none;transition:all .15s;border-left:3px solid transparent;}
-    .sb-link:hover{background:rgba(46,109,164,.15);color:#fff;}
-    .sb-link.active{background:rgba(46,109,164,.2);border-left-color:var(--accent);color:#fff;font-weight:500;}
-    .sb-link .ico{width:16px;text-align:center;opacity:.7;}
-    .sb-footer{padding:1rem 1.2rem;border-top:1px solid var(--border);}
-    .sb-user{font-size:12px;color:var(--muted);margin-bottom:6px;}
-    .sb-user strong{color:var(--text);display:block;}
-    .sb-out{display:block;font-size:12px;color:var(--muted);text-decoration:none;padding:6px 0;}
-    .sb-out:hover{color:#fff;}
-    ";
-}
-?>
 </head>
 <body>
 <?php include 'admin_sidebar.php'; ?>
@@ -129,7 +144,6 @@ function include_styles() {
     <?php if ($err): ?><div class="err"><?= $err ?></div><?php endif; ?>
 
     <div class="grid2">
-        <!-- CREAR NUEVO -->
         <div>
             <div class="box">
                 <h3>Crear nuevo periodo</h3>
@@ -146,15 +160,14 @@ function include_styles() {
 
             <?php if ($activo): ?>
             <div class="activo-box">
-                <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--accent);letter-spacing:.08em;margin-bottom:6px;">PERIODO ACTIVO</div>
+                <div class="label-act">Periodo activo</div>
                 <div class="sem"><?= htmlspecialchars($activo['semestre']) ?></div>
                 <div class="fechas"><?= date('d/m/Y',strtotime($activo['fecha_inicio'])) ?> — <?= date('d/m/Y',strtotime($activo['fecha_fin'])) ?></div>
-                <a href="?cerrar=<?= $activo['id'] ?>" onclick="return confirm('¿Cerrar este periodo manualmente?')" class="btn-danger" style="margin-top:10px;font-size:12px;">Cerrar periodo</a>
+                <a href="?cerrar=<?= $activo['id'] ?>" onclick="return confirm('¿Cerrar este periodo manualmente?')" class="btn-danger" style="margin-top:12px;font-size:12px;">Cerrar periodo</a>
             </div>
             <?php endif; ?>
         </div>
 
-        <!-- HISTORIAL -->
         <div class="box">
             <h3>Historial de periodos</h3>
             <?php foreach ($periodos as $p): ?>
